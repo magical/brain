@@ -3,6 +3,7 @@
 /*bit vectors*/
 
 typedef struct Bitvec Bitvec;
+
 struct Bitvec {
     uint8_t* v;
     int n; // # bits
@@ -21,6 +22,7 @@ Blen(Bitvec* bv) {
 }
 
 /* panic */
+
 void panic(const char* msg);
 
 
@@ -42,7 +44,30 @@ ssubu8(uint8_t a, uint8_t b)
 
 /* brain */
 
+typedef struct Params Params;
 typedef struct Layer Layer;
 
-Layer* new_layer(int n, int p, int threshold, int active);
+struct Params {
+    // N columns
+    // N proximal dendrites
+    // N*P column synapses
+    // N*D cells
+    // N*D*G segments
+    // N*D*G*X dendrites
+    int n, p, d, g, x;
+
+    uint8_t threshold; // the point at which a synapse is active
+    int active; // the number of active columns in output
+    uint8_t reward; // amount to strengthen active synapse
+    uint8_t penalty; // amount to weaken unused synapses
+};
+
+struct Layer {
+    Params p;
+    uint8_t* colWeight; // N
+    uint8_t* synWeight; // N x P
+    int*     colSorted; // N
+};
+
+Layer* new_layer(Params p);
 void print(Layer *l);

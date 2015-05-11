@@ -4,7 +4,14 @@
 #include "brain.h"
 
 int main() {
-    Layer* l = new_layer(2048, 25, 128, 200);
+    Params p = {
+        .n = 2048,
+        .p = 25,
+        //.d = 32,
+        //.g = 128,
+        //.x = 32,
+    };
+    Layer* l = new_layer(p);
     print(l);
     return 0;
 }
