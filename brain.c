@@ -27,6 +27,13 @@ All the cells in a column connect to the same input bits. When all those input b
 
 int cmpweight(const void* ap, const void* bp, void* lp);
 
+// Simple LCRNG, for determinism
+unsigned randint(unsigned n) {
+    static uint32_t seed = 1;
+    seed = seed*0x41C64E6D + 0x6073;
+    return seed % n;
+}
+
 Layer*
 new_layer(Params p) {
     int i, j;
@@ -57,7 +64,7 @@ new_layer(Params p) {
     l->colSorted = calloc((size_t)(p.n),     sizeof l->colSorted[0]);
     // Initialize synapses
     for (j = 0; j < p.p; j++) {
-            l->synWeight[j] = 255;
+        l->synWeight[j] = randint(256u);
         /*
         if (j > p.p/2) {
             l->synWeight[j] = l->synWeight[p.p - j - 1];

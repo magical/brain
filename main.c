@@ -4,16 +4,17 @@
 #include <string.h>
 #include "brain.h"
 
-enum { N = 512, Z = N/8 };
-uint8_t buf[Z+Z];
+enum { N = 2048, Z = N/8 };
+uint8_t buf[Z*2];
 
 Params params = {
     .n = N,
-    .p = 51,
+    .p = 200,
     //.d = 32,
     //.g = 128,
     //.x = 32,
     .radius = 10,
+    .threshold = 5,
 };
 
 int Bcount(Bitvec* bv) {
@@ -24,43 +25,57 @@ int Bcount(Bitvec* bv) {
     return count;
 }
 
-void Bprint(Bitvec* bv) {
+void Bprint(Bitvec* bv, char end) {
     int i, j;
     for (i = 0; i < bv->n/8; i++) {
         unsigned b = bv->v[i];
+        j = j;
+        /*
         for (j = 0; j < 8; j++){
             putc('0' + (b>>j&1), stdout);
         }
+        */
+        putc("_CG#A###T#######"[b&15], stdout);
+        putc("_CG#A###T#######"[b>>4&15], stdout);
     }
-    putc('\n', stdout);
+    if (end) {
+        putc(end, stdout);
+    }
 }
 
 int main() {
-    Layer* l;
-    Bitvec in;
-    Bitvec out;
+    Layer* l4, *l3;
+    Bitvec in, out4, out3;
     int i, c;
-    l = new_layer(params);
-    if (l == NULL) {
+    l4 = new_layer(params);
+    if (l4 == NULL) {
         panic("out of memory");
     }
-    memset(buf, 0, sizeof buf);
-    Binit(&out, N);
-    for (i = 0, c = getc(stdin); c != EOF; i++, c = getc(stdin)) {
-        if (i > Z) {
-            memmove(buf, buf+i, sizeof buf - (size_t)(i));
+    l3 = new_layer(params);
+    if (l3 == NULL) {
+        panic("out of memory");
+    }
+    memset(buf, 'A', sizeof buf);
+    Binitb(&in, buf, Z);
+    Binit(&out4, N);
+    Binit(&out3, N);
+    for (i = 0, c = getc(stdin); c != EOF; i += 2, c = getc(stdin)) {
+        if (i >= Z) {
             i = 0;
         }
-        buf[i+Z-1] = (uint8_t)c;
-        if (1 || i % 10 == 0) {
-            Binitb(&in, buf+i, Z);
-            //Bprint(&in);
-            space(l, in, &out);
-            printf("%3d ", Bcount(&out));
-            Bprint(&out);
-        }
+        buf[i] = (uint8_t)c;
+        buf[i+1] = ~(uint8_t)c;
+        //Bprint(&in);
+
+        space(l4, in, &out4);
+        printf("%3d ", Bcount(&out4));
+        Bprint(&out4, ' ');
+
+        space(l3, out4, &out3);
+        printf("%3d ", Bcount(&out3));
+        Bprint(&out3, '\n');
     }
-    //print(l);
+    //print(l4);
     return 0;
 }
 
