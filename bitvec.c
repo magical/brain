@@ -22,6 +22,13 @@ error:
     bv->v = NULL;
 }
 
+void
+Binitb(Bitvec* bv, uint8_t* buf, size_t size)
+{
+    bv->v = buf;
+    bv->n = (int)size * 8;
+}
+
 int
 _Bsize(int n)
 {
@@ -42,7 +49,7 @@ _Bsize(int n)
 uint8_t
 Bget(Bitvec* bv, int index)
 {
-    if (index < 0 || bv->n < index) {
+    if (index < 0 || bv->n <= index) {
         return 0;
     }
     uint8_t v = bv->v[(unsigned)index/8];

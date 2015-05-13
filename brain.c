@@ -35,7 +35,7 @@ new_layer(Params p) {
         return NULL;
     }
     if (p.threshold == 0) {
-        p.threshold = 128;
+        p.threshold = 20;
     }
     if (p.active == 0) {
         // Aim for 2% activation
@@ -45,18 +45,26 @@ new_layer(Params p) {
         p.reward = 10;
     }
     if (p.penalty == 0) {
-        p.penalty = 5;
+        p.penalty = 2;
+    }
+    if (p.radius == 0) {
+        p.radius = 10;
     }
     l->p = p;
+    // TODO check return from calloc
     l->colWeight = calloc((size_t)(p.n),     sizeof l->colWeight[0]);
     l->synWeight = calloc((size_t)(p.n*p.p), sizeof l->synWeight[0]);
     l->colSorted = calloc((size_t)(p.n),     sizeof l->colSorted[0]);
+    // Initialize synapses
     for (j = 0; j < p.p; j++) {
+            l->synWeight[j] = 255;
+        /*
         if (j > p.p/2) {
             l->synWeight[j] = l->synWeight[p.p - j - 1];
         } else {
             l->synWeight[j] = (uint8_t)(255 * j / (p.p/2));
         }
+        */
     }
     for (i = 1; i < p.n; i++) {
         memmove(&l->synWeight[i*p.p], l->synWeight, (size_t)(p.p) * sizeof l->synWeight[0]);
@@ -66,6 +74,7 @@ new_layer(Params p) {
 
 void print(Layer *l) {
     int i;
+    printf("[size]: %d\n", (int)(sizeof *l) + l->p.n + l->p.n*l->p.p + 4*l->p.n);
     printf("p.n: %d\n", l->p.n);
     printf("p.p: %d\n", l->p.p);
     printf("p.d: %d\n", l->p.d);
@@ -96,7 +105,10 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
     uint8_t *syn;
     int i, j;
     if (l->p.n != Blen(&in)) {
-        panic("input length does not equal column length");
+        panic("input length does not equal number of columns");
+    }
+    if (Blen(&in) != Blen(out)) {
+        panic("input and output lengths do not match");
     }
     for (i = 0; i < l->p.n; i++){
         l->colWeight[i] = 0;
@@ -105,12 +117,16 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
     // For each proximal dendrite, compute the weight of the number of active synapses
     // For each column, set the weight to the weight of the most active dendrite.
     syn = l->synWeight;
+    int h = l->p.p / 2;
+    unsigned t = l->p.threshold;
     for (i = 0; i < l->p.n; i++) {
         for (j = 0; j < l->p.p; j++) {
-            // TODO: branchless
-            if (Bget(&in, i + j - l->p.p/2) && syn[j] > l->p.threshold) {
-                l->colWeight[i]++;
-            }
+            //if (Bget(&in, i+j-h) && syn[j] > t) {
+            //    l->colWeight[i]++;
+            //}
+
+            // Branchless version
+            l->colWeight[i] += Bget(&in, i+j-h) & ((t - syn[j])>>8);
         }
         syn += l->p.p;
     }
@@ -119,13 +135,29 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
     for (i = 0; i < l->p.n; i++) {
         l->colSorted[i] = i;
     }
+    // TODO: consider a heap instead
     qsort_r(l->colSorted, (size_t)l->p.n, sizeof l->colSorted[0], cmpweight, l);
 
     // Pick the top column, and eliminate all columns near it.
     Bclear(out);
-    for (i = 0; i < l->p.active; i++) {
-        Bset(out, i);
+    int active = 0;
+    for (i = 0; i < l->p.n && active < l->p.active; i++) {
+        int k = l->colSorted[i];
+        if (l->colWeight[k] < l->p.threshold) {
+            break;
+        }
+        // If this column is in range of a higher-weight column, lay low.
+        for (j = 0; j < i; j++) {
+            if (k - l->p.radius <= l->colSorted[j] && l->colSorted[j] <= k + l->p.radius) {
+                goto inhibit;
+            }
+        }
+        Bset(out, k);
+        active++;
+    inhibit:
+        continue;
     }
+    //printf("%d %d\n", active, l->p.active);
 
     // For each proximal dendrite, if its cell is active, strengthen the connections of the synapses corresponding to active inputs. If inactive, weaken the connections of synapses corresponding to inactive inputs.
     syn = l->synWeight;
@@ -154,10 +186,10 @@ int cmpweight(const void* ap, const void* bp, void* lp) {
     const int* a = ap;
     const int* b = bp;
     if (l->colWeight[*a] < l->colWeight[*b]) {
-        return -1;
+        return 1;
     }
     if (l->colWeight[*a] > l->colWeight[*b]) {
-        return 1;
+        return -1;
     }
     return 0;
 }

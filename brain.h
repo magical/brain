@@ -9,7 +9,8 @@ struct Bitvec {
     int n; // # bits
 };
 
-void    Binit(Bitvec*, int size);
+void    Binit(Bitvec*, int n);
+void    Binitb(Bitvec*, uint8_t*, size_t size);
 //int     Blen(Bitvec*);
 int     _Bsize(int n);
 uint8_t Bget(Bitvec*, int index);
@@ -60,6 +61,7 @@ struct Params {
     int active; // the number of active columns in output
     uint8_t reward; // amount to strengthen active synapse
     uint8_t penalty; // amount to weaken unused synapses
+    int radius; // inhibition radius
 };
 
 struct Layer {
@@ -71,3 +73,4 @@ struct Layer {
 
 Layer* new_layer(Params p);
 void print(Layer *l);
+int space(Layer *l, Bitvec in, Bitvec *out);
