@@ -5,13 +5,13 @@
 #include <string.h>
 #include "brain.h"
 
-// Based on Numenta's Corticial Learning Algorithm
+// Based on Numenta's Cortical Learning Algorithm
 
 /*
 
 A layer is composed of cells arrayed in columns.
 The layer has two tasks:
-     Spacial Pooling
+     Spatial Pooling
      Temporal Pooling
 
 Components of the layer:
