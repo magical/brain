@@ -31,7 +31,7 @@ int cmpweight(const void* ap, const void* bp, void* lp);
 unsigned randint(unsigned n) {
     static uint32_t seed = 1;
     seed = seed*0x41C64E6D + 0x6073;
-    return seed % n;
+    return (seed>>16) % n;
 }
 
 Layer*
@@ -91,6 +91,7 @@ void print(Layer *l) {
     printf("p.active: %d\n", l->p.active);
     printf("p.reward: %d\n", (int)(l->p.reward));
     printf("p.penalty: %d\n", (int)(l->p.penalty));
+    printf("p.radius: %d\n", (int)(l->p.radius));
     printf("colWeight: [");
     for (i = 0; i < l->p.n; i++) {
         printf("%d ", l->colWeight[i]);
@@ -133,7 +134,8 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
             //}
 
             // Branchless version
-            l->colWeight[i] += Bget(&in, i+j-h) & ((t - syn[j])>>8);
+            int m = (i+j-h + l->p.n)%l->p.n;
+            l->colWeight[i] += Bget(&in, m) & ((t - syn[j])>>8);
         }
         syn += l->p.p;
     }
@@ -148,15 +150,18 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
     // Pick the top column, and eliminate all columns near it.
     Bclear(out);
     int active = 0;
+    int threshold = l->p.active / 2;
     for (i = 0; i < l->p.n && active < l->p.active; i++) {
         int k = l->colSorted[i];
-        if (l->colWeight[k] < l->p.threshold) {
+        if (l->colWeight[k] < threshold) {
             break;
         }
-        // If this column is in range of a higher-weight column, lay low.
-        for (j = 0; j < i; j++) {
-            if (k - l->p.radius <= l->colSorted[j] && l->colSorted[j] <= k + l->p.radius) {
-                goto inhibit;
+        if (l->p.radius != 0) {
+            // If this column is in range of a higher-weight column, lay low.
+            for (j = 0; j < i; j++) {
+                if (k - l->p.radius <= l->colSorted[j] && l->colSorted[j] <= k + l->p.radius) {
+                    goto inhibit;
+                }
             }
         }
         Bset(out, k);

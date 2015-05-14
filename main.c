@@ -4,17 +4,17 @@
 #include <string.h>
 #include "brain.h"
 
-enum { N = 2048, Z = N/8 };
+enum { N = 512, Z = N/8 };
 uint8_t buf[Z*2];
 
 Params params = {
     .n = N,
-    .p = 200,
+    .p = 100,
     //.d = 32,
     //.g = 128,
     //.x = 32,
-    .radius = 10,
-    .threshold = 5,
+    .radius = 0,
+    .threshold = 20,
 };
 
 int Bcount(Bitvec* bv) {
@@ -51,6 +51,7 @@ int main() {
     if (l4 == NULL) {
         panic("out of memory");
     }
+    params.radius=0;
     l3 = new_layer(params);
     if (l3 == NULL) {
         panic("out of memory");
