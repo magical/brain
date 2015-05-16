@@ -55,7 +55,7 @@ new_layer(Params p) {
         p.penalty = 2;
     }
     if (p.radius == 0) {
-        p.radius = 10;
+        //p.radius = 10;
     }
     l->p = p;
     // TODO check return from calloc
