@@ -19,6 +19,7 @@ Params params = {
 
 int Bcount(Bitvec* bv) {
     int i, count;
+    count = 0;
     for (i = 0; i < bv->n; i++) {
         count += Bget(bv, i);
     }
