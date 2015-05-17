@@ -29,9 +29,9 @@ int Bcount(Bitvec* bv) {
 
 void Bprint(Bitvec* bv, char end) {
     int i, j;
+    (void)j;
     for (i = 0; i < bv->n/8; i++) {
         unsigned b = bv->v[i];
-        j = j;
         /*
         for (j = 0; j < 8; j++){
             putc('0' + (b>>j&1), stdout);

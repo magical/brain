@@ -74,7 +74,7 @@ new_layer(Params p) {
     l->colSorted = calloc((size_t)(p.n),     sizeof l->colSorted[0]);
     // Initialize synapses
     for (j = 0; j < p.p; j++) {
-        l->synWeight[j] = randint(256u);
+        l->synWeight[j] = (uint8_t)randint(256u);
         /*
         if (j > p.p/2) {
             l->synWeight[j] = l->synWeight[p.p - j - 1];
