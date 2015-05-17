@@ -1,9 +1,13 @@
+//#include <stdlib.h>
 //#include <stdint.h>
 
-/*bit vectors*/
+/* panic */
+
+void panic(const char* msg, ...);
+
+/* bitvec.c */
 
 typedef struct Bitvec Bitvec;
-
 struct Bitvec {
     uint8_t* v;
     int n; // # bits
@@ -22,10 +26,10 @@ Blen(Bitvec* bv) {
     return bv->n;
 }
 
-/* panic */
+/* heap.c */
 
-void panic(const char* msg);
-
+void heapify(int* h, int len, int (*less)(void*, int, int), void*);
+int pop(int* h, int len, int (*less)(void*, int, int), void*);
 
 /* saturating arithmetic */
 
@@ -43,7 +47,7 @@ ssubu8(uint8_t a, uint8_t b)
     return (uint8_t)(c & ~(c>>8));
 }
 
-/* brain */
+/* brain.c */
 
 typedef struct Params Params;
 typedef struct Layer Layer;
@@ -62,6 +66,7 @@ struct Params {
     uint8_t reward; // amount to strengthen active synapse
     uint8_t penalty; // amount to weaken unused synapses
     int radius; // inhibition radius
+    uint8_t min; // the number of active synapses required to activate a column
 };
 
 struct Layer {

@@ -25,7 +25,10 @@ All the cells in a column connect to the same input bits. When all those input b
 
 */
 
-int cmpweight(const void* ap, const void* bp, void* lp);
+int useheap = 1;
+
+static int maxweight(void* v, int i, int j);
+static int cmpweight(const void* ap, const void* bp, void* lp);
 
 // Simple LCRNG, for determinism
 unsigned randint(unsigned n) {
@@ -140,34 +143,63 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
         syn += l->p.p;
     }
 
-    // Sort the columns by weight.
+    int active = 0;
+    int threshold = l->p.min;
     for (i = 0; i < l->p.n; i++) {
         l->colSorted[i] = i;
     }
-    // TODO: consider a heap instead
-    qsort_r(l->colSorted, (size_t)l->p.n, sizeof l->colSorted[0], cmpweight, l);
-
-    // Pick the top column, and eliminate all columns near it.
-    Bclear(out);
-    int active = 0;
-    int threshold = l->p.active / 2;
-    for (i = 0; i < l->p.n && active < l->p.active; i++) {
-        int k = l->colSorted[i];
-        if (l->colWeight[k] < threshold) {
-            break;
-        }
-        if (l->p.radius != 0) {
+    if (useheap) {
+        int len = l->p.n;
+        int* top = l->colSorted+len;
+        int* p;
+        heapify(l->colSorted, len, maxweight, l);
+        Bclear(out);
+        while (active < l->p.active && len > 0) {
+            // Pick the top column, and eliminate all columns near it.
+            int k = pop(l->colSorted, len, maxweight, l);
+            //printf("[%d] = %d\n", k, l->colWeight[k]);
+            len--;
+            top--;
+            if (l->colWeight[k] < threshold) {
+                break;
+            }
             // If this column is in range of a higher-weight column, lay low.
-            for (j = 0; j < i; j++) {
-                if (k - l->p.radius <= l->colSorted[j] && l->colSorted[j] <= k + l->p.radius) {
-                    goto inhibit;
+            if (l->p.radius != 0) {
+                for (p = l->colSorted + l->p.n - 1; p > top; p--) {
+                    if (k - l->p.radius <= *p && *p <= k + l->p.radius) {
+                        goto inhibit;
+                    }
                 }
             }
+            Bset(out, k);
+            active++;
+        inhibit:
+            continue;
         }
-        Bset(out, k);
-        active++;
-    inhibit:
-        continue;
+    } else {
+        // Sort the columns by weight.
+        qsort_r(l->colSorted, (size_t)l->p.n, sizeof l->colSorted[0], cmpweight, l);
+
+        Bclear(out);
+        for (i = 0; i < l->p.n && active < l->p.active; i++) {
+            // Pick the top column, and eliminate all columns near it.
+            int k = l->colSorted[i];
+            if (l->colWeight[k] < threshold) {
+                break;
+            }
+            // If this column is in range of a higher-weight column, lay low.
+            if (l->p.radius != 0) {
+                for (j = 0; j < i; j++) {
+                    if (k - l->p.radius <= l->colSorted[j] && l->colSorted[j] <= k + l->p.radius) {
+                        goto inhibit2;
+                    }
+                }
+            }
+            Bset(out, k);
+            active++;
+        inhibit2:
+            continue;
+        }
     }
     //printf("%d %d\n", active, l->p.active);
 
@@ -193,7 +225,21 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
     return 0;
 }
 
-int cmpweight(const void* ap, const void* bp, void* lp) {
+static int maxweight(void* v, int i, int j) {
+    Layer* l = v;
+    if (!(0 <= i && i < l->p.n)) {
+        panic("%d out of range", i);
+    }
+    if (!(0 <= j && j < l->p.n)) {
+        panic("%d out of range", j);
+    }
+    if (l->colWeight[i] == l->colWeight[j]) {
+        return i < j;
+    }
+    return l->colWeight[i] > l->colWeight[j];
+}
+
+static int cmpweight(const void* ap, const void* bp, void* lp) {
     Layer* l = lp;
     const int* a = ap;
     const int* b = bp;
@@ -203,7 +249,7 @@ int cmpweight(const void* ap, const void* bp, void* lp) {
     if (l->colWeight[*a] > l->colWeight[*b]) {
         return -1;
     }
-    return 0;
+    return *a < *b;
 }
 
 int time(Layer *l, Bitvec in, Bitvec *out, Bitvec *predict) {

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdarg.h>
 #include "brain.h"
 
 enum { N = 512, Z = N/8 };
@@ -13,7 +14,7 @@ Params params = {
     //.d = 32,
     //.g = 128,
     //.x = 32,
-    .radius = 0,
+    //.radius = 0,
     .threshold = 20,
 };
 
@@ -36,8 +37,9 @@ void Bprint(Bitvec* bv, char end) {
             putc('0' + (b>>j&1), stdout);
         }
         */
-        putc("_CG#A###T#######"[b&15], stdout);
-        putc("_CG#A###T#######"[b>>4&15], stdout);
+        putc('0' + !!b, stdout);
+        //putc("_CG#A###T#######"[b&15], stdout);
+        //putc("_CG#A###T#######"[b>>4&15], stdout);
     }
     if (end) {
         putc(end, stdout);
@@ -48,16 +50,21 @@ int main() {
     Layer* l4, *l3;
     Bitvec in, out4, out3;
     int i, c;
+    params.radius = 10;
+    params.active = 20;
+    params.min = 10;
     l4 = new_layer(params);
     if (l4 == NULL) {
         panic("out of memory");
     }
-    params.radius=0;
+    params.p = 200;
+    params.min = 5;
+    params.radius = 0;
     l3 = new_layer(params);
     if (l3 == NULL) {
         panic("out of memory");
     }
-    memset(buf, 'A', sizeof buf);
+    memset(buf, 0, sizeof buf);
     Binitb(&in, buf, Z);
     Binit(&out4, N);
     Binit(&out3, N);
@@ -81,7 +88,11 @@ int main() {
     return 0;
 }
 
-void panic(const char* msg) {
-    fprintf(stderr, "%s\n", msg);
+void panic(const char* msg, ...) {
+    va_list va;
+    va_start(va, msg);
+    vfprintf(stderr, msg, va);
+    putc('\n', stderr);
+    va_end(va);
     exit(1);
 }

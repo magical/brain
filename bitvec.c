@@ -3,6 +3,8 @@
 #include <string.h>
 #include "brain.h"
 
+/* Bit vectors */
+
 void
 Binit(Bitvec* bv, int n)
 {
