@@ -203,18 +203,16 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
     }
     //printf("%d %d\n", active, l->p.active);
 
-    // For each proximal dendrite, if its cell is active, strengthen the connections of the synapses corresponding to active inputs. If inactive, weaken the connections of synapses corresponding to inactive inputs.
+    // For each active column,
+    // strengthen its active synapses,
+    // and weaken its inactive synapses.
     syn = l->synWeight;
     for (i = 0; i < l->p.n; i++) {
         if (Bget(out, i)) {
             for (j = 0; j < l->p.p; j++) {
                 if (Bget(&in, i + j - l->p.p/2)) {
                     syn[j] = saddu8(syn[j], l->p.reward);
-                }
-            }
-        } else {
-            for (j = 0; j < l->p.p; j++) {
-                if (!Bget(&in, i + j - l->p.p/2)) {
+                } else {
                     syn[j] = ssubu8(syn[j], l->p.penalty);
                 }
             }
