@@ -11,8 +11,8 @@
 
 A layer is composed of cells arrayed in columns.
 The layer has two tasks:
-     Spatial Pooling
-     Temporal Pooling
+    Spatial Pooling
+    Temporal Pooling
 
 Components of the layer:
     cells - off, on, or ready
@@ -22,6 +22,16 @@ Components of the layer:
 A layer is composed of columns of cells. Each cell has proximal dendrites which connect to input bits, dendritic segments, and distal dendrites which form synapses between the dendritic segments and other cells.
 
 All the cells in a column connect to the same input bits. When all those input bits are active, the column bursts. When a cell activates, it sends out an inhibitory signal to its neighbors, which means that only the fastest cells - the ones with the most active synapses - activate at any one time. Cells which are active together form synapses, which helps them activate quicker next time.
+
+TODO:
+
+- Inhibit only a portion of cells within the inhibition radius.
+
+- Randomize learning - only adjust a subset of a column's synapses.
+
+- Dynamically adjust inhibition radius to maintain desired active column ratio.
+
+- Persist state to disk
 
 */
 
@@ -56,9 +66,6 @@ new_layer(Params p) {
     }
     if (p.penalty == 0) {
         p.penalty = 2;
-    }
-    if (p.radius == 0) {
-        //p.radius = 10;
     }
     l->p = p;
     // TODO check return from calloc
@@ -124,9 +131,9 @@ int space(Layer *l, Bitvec in, Bitvec *out) {
     for (i = 0; i < l->p.n; i++){
         l->colWeight[i] = 0;
     }
-    // For each proximal dendrite, figure out which synapses are active.
-    // For each proximal dendrite, compute the weight of the number of active synapses
-    // For each column, set the weight to the weight of the most active dendrite.
+    // For each column,
+    // figure out which synapses are active,
+    // and set the weight to the number of active synapses.
     syn = l->synWeight;
     int h = l->p.p / 2;
     unsigned t = l->p.threshold;
